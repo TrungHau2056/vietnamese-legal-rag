@@ -225,3 +225,5 @@ submission.zip
 *.pkl
 *.npy
 *.faiss
+data/processed/articles.jsonl
+R2AIStage1DATA.json
