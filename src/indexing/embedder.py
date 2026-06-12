@@ -93,8 +93,13 @@ def main():
     max_length = cfg["embedding"]["max_length"]
 
     import torch
-    device = "cpu"
-    print(f"2. Loading {model_name} on {device} (forced — RTX 3050 4GB too small for BGE-M3)")
+    if torch.cuda.is_available():
+        gpu_mem = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+        device = "cuda" if gpu_mem >= 8 else "cpu"
+        print(f"2. Loading {model_name} on {device} (GPU: {gpu_mem:.1f}GB)")
+    else:
+        device = "cpu"
+        print(f"2. Loading {model_name} on {device} (no GPU available)")
 
     from sentence_transformers import SentenceTransformer
     model = SentenceTransformer(model_name, trust_remote_code=True, device=device)
