@@ -1,0 +1,136 @@
+{
+  "project": "vietnamese-legal-rag",
+  "last_updated": "2026-06-10",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "The feature is the current active task.",
+    "blocked": "Work cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification has passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "data-001",
+      "priority": 1,
+      "area": "data_collection",
+      "title": "Load HuggingFace datasets to disk",
+      "user_visible_behavior": "Raw datasets (UTS_VLC, phapdien, legal_qa) saved as JSONL in data/raw/",
+      "status": "passing",
+      "verification": [
+        "Run python src/data_collection/load_hf_datasets.py",
+        "Verify data/raw/uts_vlc/*.jsonl exists with >0 lines",
+        "Verify data/raw/phapdien/train.jsonl exists",
+        "Verify data/raw/legal_qa/train.jsonl exists"
+      ],
+      "evidence": [
+        "UTS_VLC: 942 docs across 4 splits (2021=110, 2023=208, 2026=306, 2026_01=318)",
+        "phapdien: 64,464 articles in train.jsonl",
+        "legal_qa: 4,837 QA pairs in train.jsonl"
+      ],
+      "notes": "HuggingFace SSL timeouts possible — retry if needed. Using .venv/Scripts/python.exe"
+    },
+    {
+      "id": "data-002",
+      "priority": 2,
+      "area": "processing",
+      "title": "Chunk legal documents by Điều level",
+      "user_visible_behavior": "articles.jsonl in data/processed/ with correct schema (law_id, law_name, law_type, article_num, chapter, text, source)",
+      "status": "passing",
+      "verification": [
+        "Run python src/processing/chunker.py",
+        "Verify data/processed/articles.jsonl exists",
+        "Verify each article has all required fields",
+        "Verify law_name follows format: Loại VB + Mã VB + Trích yếu",
+        "Verify at least 6 core SME laws have articles",
+        "Verify no duplicate (law_id, article_num) pairs"
+      ],
+      "evidence": [
+        "2,666 articles from 712 unique laws",
+        "6 core SME laws all have articles: 59/2020=218, 04/2017=35, 45/2019=220, 38/2019=152, 91/2015=689, 61/2020=77",
+        "0 duplicate pairs, 0 empty law_id",
+        "law_name format correct: 'Luật 59/2020/QH14 Luật Doanh nghiệp', 'Bộ luật 45/2019/QH14 Bộ luật Lao động', etc.",
+        "Source: UTS_VLC=1,958, phapdien=708"
+      ],
+      "notes": "Fixed UTS_VLC slug ID normalization (e.g. 'Luat-Dau-tu-so-61-2020-QH14-321051' → '61/2020/QH14'). Extended phapdien law_id extraction for TT-BCA, QĐ-TTg, TTLT-* patterns."
+    },
+    {
+      "id": "idx-001",
+      "priority": 3,
+      "area": "indexing",
+      "title": "Build FAISS + BM25 indexes",
+      "user_visible_behavior": "FAISS dense index and BM25 sparse index saved in indexes/",
+      "status": "passing",
+      "verification": [
+        "Run indexing pipeline",
+        "Verify indexes/faiss/ has valid index file",
+        "Verify indexes/bm25/ has valid BM25 data",
+        "Query a sample and get results from both indexes"
+      ],
+      "evidence": [
+        "BGE-M3 embeddings: 2,666 vectors (1024 dim), max_length=512",
+        "FAISS IndexFlatIP: 2,666 vectors, query verified",
+        "BM25Okapi: 2,666 docs, query 'doanh nghiệp nhỏ và vừa' returns correct articles",
+        "indexes/dense.npy, indexes/sparse.json, indexes/metadata.jsonl all created"
+      ],
+      "notes": "CPU-only (no GPU). max_length reduced from 8192 to 512 for CPU performance (~38min vs 44h)."
+    },
+    {
+      "id": "ret-001",
+      "priority": 4,
+      "area": "retrieval",
+      "title": "Hybrid retrieval with RRF fusion + reranking",
+      "user_visible_behavior": "Given a legal question, retrieve top-10 relevant articles via dense+BM25+RRF+rerank",
+      "status": "passing",
+      "verification": [
+        "Run hybrid retrieval on sample questions",
+        "Verify top-10 results include relevant articles",
+        "Verify RRF correctly merges dense + BM25 scores",
+        "Verify reranker improves precision over hybrid-only"
+      ],
+      "evidence": [
+        "3 test queries all return correct law articles",
+        "'hỗ trợ DNNVV' → top-10 from Luật 04/2017 + NĐ 80/2021",
+        "'đăng ký doanh nghiệp' → Điều 26 Luật Doanh nghiệp (top-1)",
+        "'nghỉ thai sản' → Điều 139 Bộ luật Lao động (top-1)",
+        "Reranker correctly orders by relevance (irrelevant articles get negative scores)"
+      ],
+      "notes": "RRF k=60. Used transformers API for reranker (FlagEmbedding reranker incompatible with transformers 5.x). CPU-only."
+    },
+    {
+      "id": "gen-001",
+      "priority": 5,
+      "area": "generation",
+      "title": "LLM answer generation with citations",
+      "user_visible_behavior": "Given a question + retrieved articles, generate Vietnamese legal answer with 'Theo Điều X...' citations",
+      "status": "not_started",
+      "verification": [
+        "Generate answer for sample question",
+        "Verify answer contains 'Điều X' citation patterns",
+        "Verify relevant_docs and relevant_articles fields are populated correctly",
+        "Verify law_name format matches competition requirement"
+      ],
+      "evidence": [],
+      "notes": "Try both Vistral-7B and Qwen2.5-7B"
+    },
+    {
+      "id": "sub-001",
+      "priority": 6,
+      "area": "submission",
+      "title": "End-to-end pipeline producing valid results.json",
+      "user_visible_behavior": "Running full pipeline on test set produces results.json that passes format validation",
+      "status": "not_started",
+      "verification": [
+        "Run full pipeline on test set",
+        "Verify results.json has all required fields (id, question, answer, relevant_docs, relevant_articles)",
+        "Verify format validation passes",
+        "Verify zip submission structure is correct"
+      ],
+      "evidence": [],
+      "notes": "Must produce submission-ready output"
+    }
+  ]
+}

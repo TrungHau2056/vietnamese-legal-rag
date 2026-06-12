@@ -1,0 +1,14 @@
+torch>=2.0
+transformers>=4.36
+accelerate
+FlagEmbedding
+faiss-cpu
+rank-bm25
+datasets
+beautifulsoup4
+requests
+underthesea
+pyvi
+pyyaml
+tqdm
+google-generativeai

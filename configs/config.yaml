@@ -1,0 +1,65 @@
+# Vietnamese Legal RAG - Configuration
+
+# Paths
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  test_data: data/test
+  indexes: indexes
+  output: results.json
+
+# Datasets (HuggingFace)
+datasets:
+  uts_vlc:
+    name: undertheseanlp/UTS_VLC
+    splits: ["2026", "2026_01", "2023", "2021"]
+  phapdien:
+    name: tmquan/phapdien-moj-gov-vn
+    split: train
+  legal_qa:
+    name: adamwhite625/vietnam-legal-qa
+    split: train
+
+# SME document filter - law IDs to include
+sme_filter:
+  core_laws:
+    - "59/2020/QH14"   # Luật Doanh nghiệp
+    - "04/2017/QH14"   # Luật Hỗ trợ DN nhỏ và vừa
+    - "45/2019/QH14"   # Luật Lao động
+    - "38/2019/QH14"   # Luật Quản lý thuế
+    - "91/2015/QH13"   # Bộ luật Dân sự
+    - "61/2020/QH14"   # Luật Đầu tư
+  decrees:
+    - "01/2021/NĐ-CP"
+    - "80/2021/NĐ-CP"
+    - "145/2020/NĐ-CP"
+    - "123/2020/NĐ-CP"
+    - "94/2023/NĐ-CP"
+  extended_laws:
+    - "71/2015/QH13"   # Luật Bảo hiểm xã hội
+    - "36/2005/QH11"   # Luật Thương mại
+    - "23/2018/QH14"   # Luật Cạnh tranh
+
+# Embedding
+embedding:
+  model: BAAI/bge-m3
+  max_length: 256
+  batch_size: 16
+
+# Retrieval
+retrieval:
+  dense_top_k: 50
+  bm25_top_k: 50
+  rrf_k: 60
+
+# Reranker
+reranker:
+  model: BAAI/bge-reranker-v2-m3
+  top_n: 10
+
+# LLM (Gemini API)
+llm:
+  gemini_model: gemini-2.0-flash
+  max_new_tokens: 2048
+  temperature: 0.1
+  api_key_env: GEMINI_API_KEY
