@@ -6,12 +6,9 @@ Assumes the repo is cloned to /kaggle/working/vietnamese-legal-rag.
 Usage on Kaggle:
     !git clone https://github.com/TrungHau2056/vietnamese-legal-rag.git
     %cd vietnamese-legal-rag
-    !pip install -q sentence-transformers rank-bm25 pyvi faiss-cpu google-genai
-    !python kaggle_pipeline.py
-
-Set GEMINI_API_KEY as a Kaggle secret:
-    from kaggle_secrets import UserSecretsClient
-    os.environ['GEMINI_API_KEY'] = UserSecretsClient().get_secret('GEMINI_API_KEY')
+    !pip install -q sentence-transformers rank-bm25 pyvi faiss-cpu datasets
+    !python kaggle_pipeline.py                          # retrieval + generation
+    !python kaggle_pipeline.py --retrieval-only          # retrieval only (no Gemini)
 """
 
 import json
@@ -21,10 +18,14 @@ import subprocess
 import sys
 import time
 
+# Global flag: set via --retrieval-only CLI arg
+RETRIEVAL_ONLY = "--retrieval-only" in sys.argv
+
 
 def setup_env():
     """Set up environment and install dependencies."""
-    print("=== Setting up environment ===\n")
+    mode = "RETRIEVAL ONLY" if RETRIEVAL_ONLY else "RETRIEVAL + GENERATION"
+    print(f"=== Setting up environment ({mode}) ===\n")
 
     # Fix encoding
     if sys.platform == "win32":
@@ -33,7 +34,9 @@ def setup_env():
 
     # Install deps if missing
     deps = ["sentence-transformers", "rank-bm25", "pyvi", "faiss-cpu",
-            "google-genai", "pyyaml", "tqdm", "datasets"]
+            "pyyaml", "tqdm", "datasets"]
+    if not RETRIEVAL_ONLY:
+        deps.append("google-genai")
     for dep in deps:
         try:
             __import__(dep.replace("-", "_"))
@@ -132,23 +135,25 @@ def step3_retrieval_and_generation():
     print("=" * 60 + "\n")
 
     # Check for Gemini API key
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        # Try loading from .env
-        env_path = ".env"
-        if os.path.exists(env_path):
-            with open(env_path, "r") as f:
-                for line in f:
-                    if line.strip().startswith("GEMINI_API_KEY="):
-                        api_key = line.strip().split("=", 1)[1]
-                        os.environ["GEMINI_API_KEY"] = api_key
-                        break
-
-    use_gemini = bool(api_key)
-    if use_gemini:
-        print("  Gemini API key found. Will generate answers.")
+    use_gemini = False
+    if RETRIEVAL_ONLY:
+        print("  Mode: RETRIEVAL ONLY (no answer generation)")
     else:
-        print("  No GEMINI_API_KEY. Will do retrieval only (empty answers).")
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+        if not api_key:
+            env_path = ".env"
+            if os.path.exists(env_path):
+                with open(env_path, "r") as f:
+                    for line in f:
+                        if line.strip().startswith("GEMINI_API_KEY="):
+                            api_key = line.strip().split("=", 1)[1]
+                            os.environ["GEMINI_API_KEY"] = api_key
+                            break
+        use_gemini = bool(api_key)
+        if use_gemini:
+            print("  Mode: RETRIEVAL + GENERATION (Gemini API)")
+        else:
+            print("  No GEMINI_API_KEY. Retrieval only (empty answers).")
 
     # Load competition data (check multiple locations for Kaggle)
     search_paths = [
