@@ -1,0 +1,35 @@
+# R2AI Legal Assistant configuration
+
+experiment:
+  training_mode: false
+  description: "Inference-only retrieval pipeline. No custom training/fine-tuning."
+
+data:
+  dataset_name: tmquan/phapdien-moj-gov-vn
+  dataset_config: articles
+  dataset_split: train
+  questions_path: data/R2AIStage1DATA.json
+  output_dir: outputs
+
+retrieval:
+  bm25_top_k: 4000
+  max_doc_chars: 30000
+
+reranking:
+  # Default pretrained/public checkpoint.
+  model_name: AITeamVN/Vietnamese_Embedding
+  # Candidate pretrained/public checkpoints used for comparison/selection.
+  candidate_model_names:
+    - BAAI/bge-m3
+    - kietnt0603/nrk-legal-bge
+    - AITeamVN/Vietnamese_Embedding
+  no_training: true
+  score_threshold: 0.0
+  top_k: -1
+  batch_size: 32
+  max_length: 1024
+  use_fp16: true
+
+submission:
+  results_path: outputs/results.json
+  zip_path: outputs/submission.zip
