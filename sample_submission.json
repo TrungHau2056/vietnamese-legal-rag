@@ -1,0 +1,13 @@
+[
+  {
+    "id": 1,
+    "question": "Nội dung câu hỏi pháp lý.",
+    "answer": "Câu trả lời văn bản, có nhắc tới các điều luật liên quan.",
+    "relevant_docs": [
+      "04/2017/QH14|Luật 04/2017/QH14 Luật Hỗ trợ doanh nghiệp nhỏ và vừa"
+    ],
+    "relevant_articles": [
+      "04/2017/QH14|Luật 04/2017/QH14 Luật Hỗ trợ doanh nghiệp nhỏ và vừa|Điều 4"
+    ]
+  }
+]
